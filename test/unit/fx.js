@@ -34,21 +34,49 @@ test("animate option (queue === false)", function () {
 	});
 });
 
-test("queue() defaults to 'fx' type", function () {
-	expect(2);
+test("animate duration 0", function() {
+	expect(5);
+	
+	stop();
+	
+	var $elems = jQuery([{ a:0 },{ a:0 }]),
+		counter = 0,
+		count = function(){
+			counter++;
+		};
+	
+	equals( jQuery.timers.length, 0, "Make sure no animation was running from another test" );
+		
+	$elems.eq(0).animate( {a:1}, 0, count );
+	
+	// Failed until [6115]
+	equals( jQuery.timers.length, 0, "Make sure synchronic animations are not left on jQuery.timers" );
+	
+	equals( counter, 1, "One synchronic animations" );
+	
+	$elems.animate( { a:2 }, 0, count );
+	
+	equals( counter, 3, "Multiple synchronic animations" );
+	
+	$elems.eq(0).animate( {a:3}, 0, count );
+	$elems.eq(1).animate( {a:3}, 20, function(){
+		count();
+		// Failed until [6115]
+		equals( counter, 5, "One synchronic and one asynchronic" );
+		start();
+	});	
+});
+
+test("animate non-element", function(){
+	expect(1);
 	stop();
 
-	var $foo = jQuery("#foo");
-	$foo.queue("fx", [ "sample", "array" ]);
-	var arr = $foo.queue();
-	isSet(arr, [ "sample", "array" ], "queue() got an array set with type 'fx'");
-	$foo.queue([ "another", "one" ]);
-	var arr = $foo.queue("fx");
-	isSet(arr, [ "another", "one" ], "queue('fx') got an array set with no type");
-	// clean up after test
-	$foo.queue([]);
+	var obj = { test: 0 };
 
-	start();
+	jQuery(obj).animate({test: 200}, 200, function(){
+		equals( obj.test, 200, "The custom property should be modified." );
+		start();
+	});
 });
 
 test("stop()", function() {
@@ -155,26 +183,57 @@ test("stop(clearQueue, gotoEnd)", function() {
 });
 
 test("toggle()", function() {
-	expect(3);
+	expect(6);
 	var x = jQuery("#foo");
 	ok( x.is(":visible"), "is visible" );
 	x.toggle();
 	ok( x.is(":hidden"), "is hidden" );
 	x.toggle();
 	ok( x.is(":visible"), "is visible again" );
+	
+	x.toggle(true);
+	ok( x.is(":visible"), "is visible" );
+	x.toggle(false);
+	ok( x.is(":hidden"), "is hidden" );
+	x.toggle(true);
+	ok( x.is(":visible"), "is visible again" );
 });
 
-var visible = {
-	Normal: function(elem){},
-	"CSS Hidden": function(elem){
-		jQuery(this).addClass("hidden");
-	},
-	"JS Hidden": function(elem){
-		jQuery(this).hide();
-	}
-};
+jQuery.checkOverflowDisplay = function(){
+	var o = jQuery.css( this, "overflow" );
 
-var from = {
+	equals(o, "visible", "Overflow should be visible: " + o);
+	equals(jQuery.css( this, "display" ), "inline", "Display shouldn't be tampered with.");
+
+	start();
+}
+
+test("JS Overflow and Display", function() {
+	expect(2);
+	stop();
+	jQuery.makeTest( "JS Overflow and Display" )
+		.addClass("widewidth")
+		.css({ overflow: "visible", display: "inline" })
+		.addClass("widewidth")
+		.text("Some sample text.")
+		.before("text before")
+		.after("text after")
+		.animate({ opacity: 0.5 }, "slow", jQuery.checkOverflowDisplay);
+});
+		
+test("CSS Overflow and Display", function() {
+	expect(2);
+	stop();
+	jQuery.makeTest( "CSS Overflow and Display" )
+		.addClass("overflow inline")
+		.addClass("widewidth")
+		.text("Some sample text.")
+		.before("text before")
+		.after("text after")
+		.animate({ opacity: 0.5 }, "slow", jQuery.checkOverflowDisplay);
+});
+
+jQuery.each( {
 	"CSS Auto": function(elem,prop){
 		jQuery(elem).addClass("auto" + prop)
 			.text("This is a long string of text.");
@@ -209,68 +268,30 @@ var from = {
 		jQuery(elem).css(prop,prop == "opacity" ? 0 : "0px");
 		return 0;
 	}
-};
-
-var to = {
-	"show": function(elem,prop){
-		jQuery(elem).hide().addClass("wide"+prop);
-		return "show";
-	},
-	"hide": function(elem,prop){
-		jQuery(elem).addClass("wide"+prop);
-		return "hide";
-	},
-	"100": function(elem,prop){
-		jQuery(elem).addClass("wide"+prop);
-		return prop == "opacity" ? 1 : 100;
-	},
-	"50": function(elem,prop){
-		return prop == "opacity" ? 0.50 : 50;
-	},
-	"0": function(elem,prop){
-		jQuery(elem).addClass("noback");
-		return 0;
-	}
-};
-
-function checkOverflowDisplay(){
-	var o = jQuery.css( this, "overflow" );
-
-	equals(o, "visible", "Overflow should be visible: " + o);
-	equals(jQuery.css( this, "display" ), "inline", "Display shouldn't be tampered with.");
-
-	start();
-}
-
-test("JS Overflow and Display", function() {
-	expect(2);
-	stop();
-	makeTest( "JS Overflow and Display" )
-		.addClass("widewidth")
-		.css({ overflow: "visible", display: "inline" })
-		.addClass("widewidth")
-		.text("Some sample text.")
-		.before("text before")
-		.after("text after")
-		.animate({ opacity: 0.5 }, "slow", checkOverflowDisplay);
-});
-		
-test("CSS Overflow and Display", function() {
-	expect(2);
-	stop();
-	makeTest( "CSS Overflow and Display" )
-		.addClass("overflow inline")
-		.addClass("widewidth")
-		.text("Some sample text.")
-		.before("text before")
-		.after("text after")
-		.animate({ opacity: 0.5 }, "slow", checkOverflowDisplay);
-});
-
-jQuery.each( from, function(fn, f){
-	jQuery.each( to, function(tn, t){
+}, function(fn, f){
+	jQuery.each( {
+		"show": function(elem,prop){
+			jQuery(elem).hide().addClass("wide"+prop);
+			return "show";
+		},
+		"hide": function(elem,prop){
+			jQuery(elem).addClass("wide"+prop);
+			return "hide";
+		},
+		"100": function(elem,prop){
+			jQuery(elem).addClass("wide"+prop);
+			return prop == "opacity" ? 1 : 100;
+		},
+		"50": function(elem,prop){
+			return prop == "opacity" ? 0.50 : 50;
+		},
+		"0": function(elem,prop){
+			jQuery(elem).addClass("noback");
+			return 0;
+		}
+	}, function(tn, t){
 		test(fn + " to " + tn, function() {
-			var elem = makeTest( fn + " to " + tn );
+			var elem = jQuery.makeTest( fn + " to " + tn );
 	
 			var t_w = t( elem, "width" );
 			var f_w = f( elem, "width" );
@@ -349,10 +370,10 @@ jQuery.each( from, function(fn, f){
 	});
 });
 
-var check = ['opacity','height','width','display','overflow'];
-
 jQuery.fn.saveState = function(){
+	var check = ['opacity','height','width','display','overflow'];	
 	expect(check.length);
+	
 	stop();
 	return this.each(function(){
 		var self = this;
@@ -363,7 +384,7 @@ jQuery.fn.saveState = function(){
 	});
 };
 
-function checkState(){
+jQuery.checkState = function(){
 	var self = this;
 	jQuery.each(this.save, function(c,v){
 		var cur = jQuery.css(self,c);
@@ -374,43 +395,43 @@ function checkState(){
 
 // Chaining Tests
 test("Chain fadeOut fadeIn", function() {
-	jQuery('#fadein div').saveState().fadeOut('fast').fadeIn('fast',checkState);
+	jQuery('#fadein div').saveState().fadeOut('fast').fadeIn('fast',jQuery.checkState);
 });
 test("Chain fadeIn fadeOut", function() {
-	jQuery('#fadeout div').saveState().fadeIn('fast').fadeOut('fast',checkState);
+	jQuery('#fadeout div').saveState().fadeIn('fast').fadeOut('fast',jQuery.checkState);
 });
 
 test("Chain hide show", function() {
-	jQuery('#show div').saveState().hide('fast').show('fast',checkState);
+	jQuery('#show div').saveState().hide('fast').show('fast',jQuery.checkState);
 });
 test("Chain show hide", function() {
-	jQuery('#hide div').saveState().show('fast').hide('fast',checkState);
+	jQuery('#hide div').saveState().show('fast').hide('fast',jQuery.checkState);
 });
 
 test("Chain toggle in", function() {
-	jQuery('#togglein div').saveState().toggle('fast').toggle('fast',checkState);
+	jQuery('#togglein div').saveState().toggle('fast').toggle('fast',jQuery.checkState);
 });
 test("Chain toggle out", function() {
-	jQuery('#toggleout div').saveState().toggle('fast').toggle('fast',checkState);
+	jQuery('#toggleout div').saveState().toggle('fast').toggle('fast',jQuery.checkState);
 });
 
 test("Chain slideDown slideUp", function() {
-	jQuery('#slidedown div').saveState().slideDown('fast').slideUp('fast',checkState);
+	jQuery('#slidedown div').saveState().slideDown('fast').slideUp('fast',jQuery.checkState);
 });
 test("Chain slideUp slideDown", function() {
-	jQuery('#slideup div').saveState().slideUp('fast').slideDown('fast',checkState);
+	jQuery('#slideup div').saveState().slideUp('fast').slideDown('fast',jQuery.checkState);
 });
 
 test("Chain slideToggle in", function() {
-	jQuery('#slidetogglein div').saveState().slideToggle('fast').slideToggle('fast',checkState);
+	jQuery('#slidetogglein div').saveState().slideToggle('fast').slideToggle('fast',jQuery.checkState);
 });
 test("Chain slideToggle out", function() {
-	jQuery('#slidetoggleout div').saveState().slideToggle('fast').slideToggle('fast',checkState);
+	jQuery('#slidetoggleout div').saveState().slideToggle('fast').slideToggle('fast',jQuery.checkState);
 });
 
-function makeTest( text ){
+jQuery.makeTest = function( text ){
 	var elem = jQuery("<div></div>")
-		.attr("id", "test" + makeTest.id++)
+		.attr("id", "test" + jQuery.makeTest.id++)
 		.addClass("box");
 
 	jQuery("<h4></h4>")
@@ -424,4 +445,4 @@ function makeTest( text ){
 	return elem;
 }
 
-makeTest.id = 1;
+jQuery.makeTest.id = 1;

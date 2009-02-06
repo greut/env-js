@@ -2,6 +2,8 @@ module("selector");
 
 test("element", function() {
 	expect(9);
+	reset();
+
 	ok( jQuery("*").size() >= 30, "Select all" );
 	var all = jQuery("*"), good = true;
 	for ( var i = 0; i < all.length; i++ )
@@ -19,11 +21,15 @@ test("element", function() {
 });
 
 if ( location.protocol != "file:" ) {
-	test("Element Selector with underscore", function() {
-		expect(1);
+	test("XML Document Selectors", function() {
+		expect(5);
 		stop();
 		jQuery.get("data/with_fries.xml", function(xml) {
 			equals( jQuery("foo_bar", xml).length, 1, "Element Selector with underscore" );
+			equals( jQuery("property[name=prop2]", xml).length, 1, "Attribute selector with name" );
+			equals( jQuery("[name=prop2]", xml).length, 1, "Attribute selector with name" );
+			equals( jQuery("#seite1", xml).length, 1, "Attribute selector with ID" );
+			equals( jQuery("component#seite1", xml).length, 1, "Attribute selector with ID" );
 			start();
 		});
 	});
@@ -31,13 +37,22 @@ if ( location.protocol != "file:" ) {
 
 test("broken", function() {
 	expect(7);
-	t( "Broken Selector", "[", [] );
-	t( "Broken Selector", "(", [] );
-	t( "Broken Selector", "{", [] );
-	t( "Broken Selector", "<", [] );
-	t( "Broken Selector", "()", [] );
-	t( "Broken Selector", "<>", [] );
-	t( "Broken Selector", "{}", [] );
+	function broken(name, selector) {
+		try {
+			jQuery(selector);
+		} catch(e){
+			ok(  typeof e === "string" && e.indexOf("Syntax error") >= 0,
+				name + ": " + selector );
+		}
+	}
+	
+	broken( "Broken Selector", "[", [] );
+	broken( "Broken Selector", "(", [] );
+	broken( "Broken Selector", "{", [] );
+	broken( "Broken Selector", "<", [] );
+	broken( "Broken Selector", "()", [] );
+	broken( "Broken Selector", "<>", [] );
+	broken( "Broken Selector", "{}", [] );
 });
 
 test("id", function() {
@@ -64,7 +79,7 @@ test("id", function() {
 	t( "ID Selector, not a child ID", "#form > #option1a", [] );
 	
 	t( "All Children of ID", "#foo > *", ["sndp", "en", "sap"] );
-	t( "All Children of ID with no children", "#firstUL/*", [] );
+	t( "All Children of ID with no children", "#firstUL > *", [] );
 	
 	jQuery('<a name="tName1">tName1 A</a><a name="tName2">tName2 A</a><div id="tName1">tName1 Div</div>').appendTo('#main');
 	equals( jQuery("#tName1")[0].id, 'tName1', "ID selector with same value for a name attribute" );
@@ -79,17 +94,18 @@ test("id", function() {
 test("class", function() {
 	expect(16);
 	t( "Class Selector", ".blog", ["mark","simon"] );
+	t( "Class Selector", ".GROUPS", ["groups"] );
 	t( "Class Selector", ".blog.link", ["simon"] );
 	t( "Class Selector w/ Element", "a.blog", ["mark","simon"] );
 	t( "Parent Class Selector", "p .blog", ["mark","simon"] );
 	
 	t( "Class selector using UTF8", ".台北Táiběi", ["utf8class1"] );
-	t( "Class selector using UTF8", ".台北", ["utf8class1","utf8class2"] );
+	//t( "Class selector using UTF8", ".台北", ["utf8class1","utf8class2"] );
 	t( "Class selector using UTF8", ".台北Táiběi.台北", ["utf8class1"] );
 	t( "Class selector using UTF8", ".台北Táiběi, .台北", ["utf8class1","utf8class2"] );
 	t( "Descendant class selector using UTF8", "div .台北Táiběi", ["utf8class1"] );
 	t( "Child class selector using UTF8", "form > .台北Táiběi", ["utf8class1"] );
-	
+
 	t( "Escaped Class", ".foo\\:bar", ["foo:bar"] );
 	t( "Escaped Class", ".test\\.foo\\[5\\]bar", ["test.foo[5]bar"] );
 	t( "Descendant scaped Class", "div .foo\\:bar", ["foo:bar"] );
@@ -98,16 +114,33 @@ test("class", function() {
 	t( "Child escaped Class", "form > .test\\.foo\\[5\\]bar", ["test.foo[5]bar"] );
 });
 
+test("name", function() {
+	expect(7);
+
+	t( "Name selector", "input[name=action]", ["text1"] );
+	t( "Name selector with single quotes", "input[name='action']", ["text1"] );
+	t( "Name selector with double quotes", 'input[name="action"]', ["text1"] );
+
+	t( "Name selector non-input", "*[name=iframe]", ["iframe"] );
+
+	t( "Name selector for grouped input", "input[name='types[]']", ["types_all", "types_anime", "types_movie"] )
+
+	isSet( jQuery("#form").find("input[name=action]"), q("text1"), "Name selector within the context of another element" );
+	isSet( jQuery("#form").find("input[name='foo[bar]']"), q("hidden2"), "Name selector for grouped form element within the context of another element" );
+});
+
+
 test("multiple", function() {
 	expect(4);
-	t( "Comma Support", "a.blog, p", ["mark","simon","firstp","ap","sndp","en","sap","first"] );
-	t( "Comma Support", "a.blog , p", ["mark","simon","firstp","ap","sndp","en","sap","first"] );
-	t( "Comma Support", "a.blog ,p", ["mark","simon","firstp","ap","sndp","en","sap","first"] );
-	t( "Comma Support", "a.blog,p", ["mark","simon","firstp","ap","sndp","en","sap","first"] );
+	
+	t( "Comma Support", "h2, p", ["banner","userAgent","firstp","ap","sndp","en","sap","first"]);
+	t( "Comma Support", "h2 , p", ["banner","userAgent","firstp","ap","sndp","en","sap","first"]);
+	t( "Comma Support", "h2 , p", ["banner","userAgent","firstp","ap","sndp","en","sap","first"]);
+	t( "Comma Support", "h2,p", ["banner","userAgent","firstp","ap","sndp","en","sap","first"]);
 });
 
 test("child and adjacent", function() {
-	expect(37);
+	expect(45);
 	t( "Child", "p > a", ["simon1","google","groups","mark","yahoo","simon"] );
 	t( "Child", "p> a", ["simon1","google","groups","mark","yahoo","simon"] );
 	t( "Child", "p >a", ["simon1","google","groups","mark","yahoo","simon"] );
@@ -121,15 +154,34 @@ test("child and adjacent", function() {
 	t( "Adjacent", "a+a", ["groups"] );
 	t( "Adjacent", "p + p", ["ap","en","sap"] );
 	t( "Comma, Child, and Adjacent", "a + a, code > a", ["groups","anchor1","anchor2"] );
+
+	t( "Verify deep class selector", "div.blah > p > a", [] );
+
+	t( "No element deep selector", "div.foo > span > a", [] );
+	t( "No element not selector", ".container div:not(.excluded) div", [] );
+
+	isSet( jQuery("> :first", document.getElementById("nothiddendiv")), q("nothiddendivchild"), "Verify child context positional selctor" );
+	isSet( jQuery("> :eq(0)", document.getElementById("nothiddendiv")), q("nothiddendivchild"), "Verify child context positional selctor" );
+	isSet( jQuery("> *:first", document.getElementById("nothiddendiv")), q("nothiddendivchild"), "Verify child context positional selctor" );
+
+	t( "Non-existant ancestors", ".fototab > .thumbnails > a", [] );
 	
 	t( "First Child", "p:first-child", ["firstp","sndp"] );
 	t( "Nth Child", "p:nth-child(1)", ["firstp","sndp"] );
+
+	// Verify that the child position isn't being cached improperly
+	jQuery("p:first-child").after("<div></div>");
+	jQuery("p:first-child").before("<div></div>").next().remove();
+
+	t( "First Child", "p:first-child", [] );
+
+	reset();
 	
 	t( "Last Child", "p:last-child", ["sap"] );
 	t( "Last Child", "a:last-child", ["simon1","anchor1","mark","yahoo","anchor2","simon"] );
 	
-	t( "Nth-child", "#main form#form > *:nth-child(2)", ["text2"] );
-	t( "Nth-child", "#main form#form > :nth-child(2)", ["text2"] );
+	t( "Nth-child", "#main form#form > *:nth-child(2)", ["text1"] );
+	t( "Nth-child", "#main form#form > :nth-child(2)", ["text1"] );
 
 	t( "Nth-child", "#form select:first option:nth-child(3)", ["option1c"] );
 	t( "Nth-child", "#form select:first option:nth-child(0n+3)", ["option1c"] );
@@ -152,27 +204,47 @@ test("child and adjacent", function() {
 });
 
 test("attributes", function() {
-	expect(20);
+	expect(35);
 	t( "Attribute Exists", "a[title]", ["google"] );
 	t( "Attribute Exists", "*[title]", ["google"] );
 	t( "Attribute Exists", "[title]", ["google"] );
+	t( "Attribute Exists", "a[ title ]", ["google"] );
 	
 	t( "Attribute Equals", "a[rel='bookmark']", ["simon1"] );
 	t( "Attribute Equals", 'a[rel="bookmark"]', ["simon1"] );
 	t( "Attribute Equals", "a[rel=bookmark]", ["simon1"] );
-	t( "Multiple Attribute Equals", "#form input[type='hidden'],#form input[type='radio']", ["hidden1","radio1","radio2"] );
-	t( "Multiple Attribute Equals", "#form input[type=\"hidden\"],#form input[type='radio']", ["hidden1","radio1","radio2"] );
-	t( "Multiple Attribute Equals", "#form input[type=hidden],#form input[type=radio]", ["hidden1","radio1","radio2"] );
+	t( "Attribute Equals", "a[href='http://www.google.com/']", ["google"] );
+	t( "Attribute Equals", "a[ rel = 'bookmark' ]", ["simon1"] );
+
+	document.getElementById("anchor2").href = "#2";
+	t( "href Attribute", "p a[href^=#]", ["anchor2"] );
+	t( "href Attribute", "p a[href*=#]", ["simon1", "anchor2"] );
+
+	t( "for Attribute", "form label[for]", ["label-for"] );
+	t( "for Attribute in form", "#form [for=action]", ["label-for"] );
+	
+	t( "Attribute containing []", "input[name^='foo[']", ["hidden2"] );
+	t( "Attribute containing []", "input[name^='foo[bar]']", ["hidden2"] );
+	t( "Attribute containing []", "input[name*='[bar]']", ["hidden2"] );
+	t( "Attribute containing []", "input[name$='bar]']", ["hidden2"] );
+	t( "Attribute containing []", "input[name$='[bar]']", ["hidden2"] );
+	t( "Attribute containing []", "input[name$='foo[bar]']", ["hidden2"] );
+	t( "Attribute containing []", "input[name*='foo[bar]']", ["hidden2"] );
+	
+	t( "Multiple Attribute Equals", "#form input[type='radio'], #form input[type='hidden']", ["radio1", "radio2", "hidden1"] );
+	t( "Multiple Attribute Equals", "#form input[type='radio'], #form input[type=\"hidden\"]", ["radio1", "radio2", "hidden1"] );
+	t( "Multiple Attribute Equals", "#form input[type='radio'], #form input[type=hidden]", ["radio1", "radio2", "hidden1"] );
 	
 	t( "Attribute selector using UTF8", "span[lang=中文]", ["台北"] );
 	
 	t( "Attribute Begins With", "a[href ^= 'http://www']", ["google","yahoo"] );
 	t( "Attribute Ends With", "a[href $= 'org/']", ["mark"] );
 	t( "Attribute Contains", "a[href *= 'google']", ["google","groups"] );
+	t( "Attribute Is Not Equal", "#ap a[hreflang!='en']", ["google","groups","anchor1"] );
 	
-	t("Select options via [selected]", "#select1 option[selected]", ["option1a"] );
-	t("Select options via [selected]", "#select2 option[selected]", ["option2d"] );
-	t("Select options via [selected]", "#select3 option[selected]", ["option3b", "option3c"] );
+	t("Select options via :selected", "#select1 option:selected", ["option1a"] );
+	t("Select options via :selected", "#select2 option:selected", ["option2d"] );
+	t("Select options via :selected", "#select3 option:selected", ["option3b", "option3c"] );
 	
 	t( "Grouped Form Elements", "input[name='foo[bar]']", ["hidden2"] );
 	
@@ -182,21 +254,25 @@ test("attributes", function() {
 });
 
 test("pseudo (:) selectors", function() {
-	expect(35);
+	expect(53);
 	t( "First Child", "p:first-child", ["firstp","sndp"] );
 	t( "Last Child", "p:last-child", ["sap"] );
 	t( "Only Child", "a:only-child", ["simon1","anchor1","yahoo","anchor2"] );
 	t( "Empty", "ul:empty", ["firstUL"] );
-	t( "Enabled UI Element", "#form input:enabled", ["text1","radio1","radio2","check1","check2","hidden1","hidden2","name"] );
+	t( "Enabled UI Element", "#form input:not([type=hidden]):enabled", ["text1","radio1","radio2","check1","check2","hidden2","name"] );
 	t( "Disabled UI Element", "#form input:disabled", ["text2"] );
 	t( "Checked UI Element", "#form input:checked", ["radio2","check1"] );
 	t( "Selected Option Element", "#form option:selected", ["option1a","option2d","option3b","option3c"] );
 	t( "Text Contains", "a:contains('Google')", ["google","groups"] );
 	t( "Text Contains", "a:contains('Google Groups')", ["groups"] );
-	t( "Element Preceded By", "p ~ div", ["foo","fx-queue","fx-tests", "moretests"] );
+
+	t( "Text Contains", "a:contains('Google Groups (Link)')", ["groups"] );
+	t( "Text Contains", "a:contains('(Link)')", ["groups"] );
+
+	t( "Element Preceded By", "p ~ div", ["foo","fx-queue","fx-tests", "moretests","tabindex-tests"] );
 	t( "Not", "a.blog:not(.link)", ["mark"] );
-	t( "Not - multiple", "#form option:not(:contains('Nothing'),#option1b,:selected)", ["option1c", "option1d", "option2b", "option2c", "option3d"] );
-	t( "Not - complex", "#form option:not([id^='opt']:gt(0):nth-child(-n+3))", [ "option1a", "option1d", "option2d", "option3d"] );
+	t( "Not - multiple", "#form option:not(:contains('Nothing'),#option1b,:selected)", ["option1c", "option1d", "option2b", "option2c", "option3d", "option3e"] );
+	//t( "Not - complex", "#form option:not([id^='opt']:nth-child(-n+3))", [ "option1a", "option1d", "option2d", "option3d", "option3e"] );
 	t( "Not - recursive", "#form option:not(:not(:selected))[id^='option3']", [ "option3b", "option3c"] );
 	
 	t( "nth Element", "p:nth(1)", ["ap"] );
@@ -210,6 +286,25 @@ test("pseudo (:) selectors", function() {
 	t( "Is A Parent", "p:parent", ["firstp","ap","sndp","en","sap","first"] );
 	t( "Is Visible", "#form input:visible", ["text1","text2","radio1","radio2","check1","check2","name"] );
 	t( "Is Hidden", "#form input:hidden", ["hidden1","hidden2"] );
+
+	t( "Check position filtering", "div#nothiddendiv:eq(0)", ["nothiddendiv"] );
+	t( "Check position filtering", "div#nothiddendiv:last", ["nothiddendiv"] );
+	t( "Check position filtering", "div#nothiddendiv:not(:gt(0))", ["nothiddendiv"] );
+	t( "Check position filtering", "#foo > :not(:first)", ["en", "sap"] );
+	t( "Check position filtering", "select > :not(:gt(2))", ["option1a", "option1b", "option1c"] );
+	t( "Check position filtering", "select:lt(2) :not(:first)", ["option1b", "option1c", "option1d", "option2a", "option2b", "option2c", "option2d"] );
+	t( "Check position filtering", "div.nothiddendiv:eq(0)", ["nothiddendiv"] );
+	t( "Check position filtering", "div.nothiddendiv:last", ["nothiddendiv"] );
+	t( "Check position filtering", "div.nothiddendiv:not(:lt(0))", ["nothiddendiv"] );
+
+	t( "Check element position", "div div:eq(0)", ["nothiddendivchild"] );
+	t( "Check element position", "div div:eq(5)", ["fadeout"] );
+	t( "Check element position", "div div:eq(27)", ["t2037"] );
+	t( "Check element position", "div div:first", ["nothiddendivchild"] );
+	t( "Check element position", "div > div:first", ["nothiddendivchild"] );
+	t( "Check element position", "#dl div:first div:first", ["foo"] );
+	t( "Check element position", "#dl div:first > div:first", ["foo"] );
+	t( "Check element position", "div#nothiddendiv:first > div:first", ["nothiddendivchild"] );
 	
 	t( "Form element :input", "#form :input", ["text1", "text2", "radio1", "radio2", "check1", "check2", "hidden1", "hidden2", "name", "button", "area1", "select1", "select2", "select3"] );
 	t( "Form element :radio", "#form :radio", ["radio1", "radio2"] );

@@ -3,7 +3,7 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>jQuery Test Suite</title>
-	<link rel="Stylesheet" media="screen" href="data/testsuite.css" />
+	<link rel="Stylesheet" media="screen" href="qunit/testsuite.css" />
 	<!-- Includes -->
 	<script type="text/javascript">
 		var jQuery = this.jQuery || "jQuery", // For testing .noConflict()
@@ -12,8 +12,10 @@
 			original$ = $;
 	</script>
 	<script type="text/javascript" src="../dist/jquery.js"></script>
+	<script type="text/javascript" src="qunit/testrunner.js"></script>
 	<script type="text/javascript" src="data/testrunner.js"></script>
 	<script type="text/javascript" src="unit/core.js"></script>
+	<script type="text/javascript" src="unit/data.js"></script>
 	<script type="text/javascript" src="unit/dimensions.js"></script>
 	<script type="text/javascript" src="unit/selector.js"></script>
 	<script type="text/javascript" src="unit/event.js"></script>
@@ -27,7 +29,7 @@
 	<h2 id="userAgent"></h2>
 	
 	<!-- Test HTML -->
-	<div id="nothiddendiv" style="height:1px;background:white;">
+	<div id="nothiddendiv" style="height:1px;background:white;" class="nothiddendiv">
 		<div id="nothiddendivchild"></div>
 	</div>
 	<!-- this iframe is outside the #main so it won't reload constantly wasting time, but it means the tests must be "safe" and clean up after themselves -->
@@ -37,7 +39,7 @@
 		<p id="firstp">See <a id="simon1" href="http://simon.incutio.com/archive/2003/03/25/#getElementsBySelector" rel="bookmark">this blog entry</a> for more information.</p>
 		<p id="ap">
 			Here are some links in a normal paragraph: <a id="google" href="http://www.google.com/" title="Google!">Google</a>, 
-			<a id="groups" href="http://groups.google.com/">Google Groups</a>. 
+			<a id="groups" href="http://groups.google.com/" class="GROUPS">Google Groups (Link)</a>. 
 			This link has <code><a href="http://smin" id="anchor1">class="blog"</a></code>: 
 			<a href="http://diveintomark.org/" class="blog" hreflang="en" id="mark">diveintomark</a>
 
@@ -52,6 +54,7 @@
 		<ul id="firstUL"></ul>
 		<ol id="empty"></ol>
 		<form id="form" action="formaction">
+			<label for="action" id="label-for">Action:</label>
 			<input type="text" name="action" value="Test" id="text1" maxlength="30"/>
 			<input type="text" name="text2" value="Test" id="text2" disabled="disabled"/>
 			<input type="radio" name="radio1" id="radio1" value="on"/>
@@ -86,6 +89,7 @@
 				<option id="option3b" selected="selected" value="1">1</option>
 				<option id="option3c" selected="selected" value="2">2</option>
 				<option id="option3d" value="3">3</option>
+				<option id="option3e">no value</option>
 			</select>
 			
 			<object id="object1" codebase="stupid">
@@ -109,6 +113,13 @@
 			<input type="text" id="idTest" name="id"/>
 		</form>
 		<table id="table"></table>
+
+		<form id="name-tests">
+			<!-- Inputs with a grouped name attribute. -->
+			<input name="types[]" id="types_all" type="checkbox" value="all" />
+			<input name="types[]" id="types_anime" type="checkbox" value="anime" />
+			<input name="types[]" id="types_movie" type="checkbox" value="movie" />
+		</form>
 		
 		<div id="fx-queue">
 			<div id="fadein" class='chain test'>fadeIn<div>fadeIn</div></div>
@@ -184,6 +195,23 @@ Z</textarea>
 			<div id="t2037">
 				<div><div class="hidden">hidden</div></div>
 			</div>
+		</div>
+		
+		<div id="tabindex-tests">
+			<ol id="listWithTabIndex" tabindex="5">
+				<li id="foodWithNegativeTabIndex" tabindex="-1">Rice</li>
+				<li id="foodNoTabIndex">Beans</li>
+				<li>Blinis</li>
+				<li>Tofu</li>
+			</ol>
+		
+			<div id="divWithNoTabIndex">I'm hungry. I should...</div>
+			<span>...</span><a href="#" id="linkWithNoTabIndex">Eat lots of food</a><span>...</span> |
+			<span>...</span><a href="#" id="linkWithTabIndex" tabindex="2">Eat a little food</a><span>...</span> |
+			<span>...</span><a href="#" id="linkWithNegativeTabIndex" tabindex="-1">Eat no food</a><span>...</span>
+			<span>...</span><a id="linkWithNoHrefWithNoTabIndex">Eat a burger</a><span>...</span>
+			<span>...</span><a id="linkWithNoHrefWithTabIndex" tabindex="1">Eat some funyuns</a><span>...</span>
+			<span>...</span><a id="linkWithNoHrefWithNegativeTabIndex" tabindex="-1">Eat some funyuns</a><span>...</span>
 		</div>
 	</div>
 	</dl>

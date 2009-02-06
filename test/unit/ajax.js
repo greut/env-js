@@ -157,19 +157,18 @@ test("jQuery.ajax - beforeSend, cancel request (#2688)", function() {
 	ok( request === false, "canceled request must return false instead of XMLHttpRequest instance" );
 });
 
-var foobar;
+window.foobar = null;
+window.testFoo = undefined;
 
 test("jQuery.ajax - dataType html", function() {
 	expect(5);
 	stop();
 	
-	foobar = null;
-	testFoo = undefined;
-
 	var verifyEvaluation = function() {
-	  equals( testFoo, "foo", 'Check if script was evaluated for datatype html' );
-	  equals( foobar, "bar", 'Check if script src was evaluated for datatype html' );
-	  start();
+		equals( testFoo, "foo", 'Check if script was evaluated for datatype html' );
+		equals( foobar, "bar", 'Check if script src was evaluated for datatype html' );
+	  
+		start();
 	};
 
 	jQuery.ajax({
@@ -240,23 +239,24 @@ test("synchronous request with callbacks", function() {
 
 test("pass-through request object", function() {
 	expect(8);
-	stop(true);
+	stop();
 	
 	var target = "data/name.html";
 	var successCount = 0;
 	var errorCount = 0;
-  var errorEx = "";
+	var errorEx = "";
 	var success = function() {
 		successCount++;
 	};
 	jQuery("#foo").ajaxError(function (e, xml, s, ex) {
 		errorCount++;
-    errorEx += ": " + xml.status;
+		errorEx += ": " + xml.status;
 	});
 	jQuery("#foo").one('ajaxStop', function () {
 		equals(successCount, 5, "Check all ajax calls successful");
 		equals(errorCount, 0, "Check no ajax errors (status" + errorEx + ")");
 		jQuery("#foo").unbind('ajaxError');
+		
 		start();
 	});
 	
@@ -321,13 +321,13 @@ test("global ajaxSettings", function() {
 
 test("load(String)", function() {
 	expect(1);
-	stop(true); // check if load can be called with only url
+	stop(); // check if load can be called with only url
 	jQuery('#first').load("data/name.html", start);
 });
 
 test("load('url selector')", function() {
 	expect(1);
-	stop(true); // check if load can be called with only url
+	stop(); // check if load can be called with only url
 	jQuery('#first').load("data/test3.html div.user", function(){
 		equals( jQuery(this).children("div").length, 2, "Verify that specific elements were injected" );
 		start();
@@ -359,12 +359,12 @@ test("load(String, Function) - simple: inject text into DOM", function() {
 test("load(String, Function) - check scripts", function() {
 	expect(7);
 	stop();
-	window.testFoo = undefined;
-	window.foobar = null;
+	
 	var verifyEvaluation = function() {
 		equals( foobar, "bar", 'Check if script src was evaluated after load' );
 		equals( jQuery('#ap').html(), 'bar', 'Check if script evaluation has modified DOM');
-		 start();
+		
+		start();
 	};
 	jQuery('#first').load(url('data/test.html'), function() {
 		ok( jQuery('#first').html().match(/^html text/), 'Check content after loading html' );
@@ -377,10 +377,11 @@ test("load(String, Function) - check scripts", function() {
 test("load(String, Function) - check file with only a script tag", function() {
 	expect(3);
 	stop();
-	testFoo = undefined;
+
 	jQuery('#first').load(url('data/test2.html'), function() {
 		equals( jQuery('#foo').html(), 'foo', 'Check if script evaluation has modified DOM');
 		equals( testFoo, "foo", 'Check if script was evaluated after load' );
+		
 		start();
 	});
 });
@@ -426,7 +427,6 @@ test("jQuery.get(String, Hash, Function) - parse xml and use text() on nodes", f
 test("jQuery.getScript(String, Function) - with callback", function() {
 	expect(2);
 	stop();
-	window.foobar = null;
 	jQuery.getScript(url("data/test.js"), function() {
 		equals( foobar, "bar", 'Check if script was evaluated' );
 		setTimeout(start, 100);
@@ -435,8 +435,10 @@ test("jQuery.getScript(String, Function) - with callback", function() {
 
 test("jQuery.getScript(String, Function) - no callback", function() {
 	expect(1);
-	stop(true);
-	jQuery.getScript(url("data/test.js"), start);
+	stop();
+	jQuery.getScript(url("data/test.js"), function(){
+		start();
+	});
 });
 
 test("jQuery.ajax() - JSONP, Local", function() {
@@ -618,7 +620,6 @@ test("jQuery.ajax() - script, Remote", function() {
 
 	stop();
 
-	window.foobar = null;
 	jQuery.ajax({
 		url: base + "data/test.js",
 		dataType: "script",
@@ -636,7 +637,6 @@ test("jQuery.ajax() - script, Remote with POST", function() {
 
 	stop();
 
-	window.foobar = null;
 	jQuery.ajax({
 		url: base + "data/test.js",
 		type: "POST",
@@ -657,7 +657,6 @@ test("jQuery.ajax() - script, Remote with scheme-less URL", function() {
 
 	stop();
 
-	window.foobar = null;
 	jQuery.ajax({
 		url: base + "data/test.js",
 		dataType: "script",
@@ -706,11 +705,14 @@ test("jQuery.getJSON(String, Function) - JSON object with absolute url to local 
 test("jQuery.post(String, Hash, Function) - simple with xml", function() {
 	expect(4);
 	stop();
+	var done = 0;
+
 	jQuery.post(url("data/name.php"), {xml: "5-2"}, function(xml){
 	  jQuery('math', xml).each(function() {
 		    equals( jQuery('calculation', this).text(), '5-2', 'Check for XML' );
 		    equals( jQuery('result', this).text(), '3', 'Check for XML' );
 		 });
+	  if ( ++done === 2 ) start();
 	});
 
 	jQuery.post(url("data/name.php?xml=5-2"), {}, function(xml){
@@ -718,7 +720,7 @@ test("jQuery.post(String, Hash, Function) - simple with xml", function() {
 		    equals( jQuery('calculation', this).text(), '5-2', 'Check for XML' );
 		    equals( jQuery('result', this).text(), '3', 'Check for XML' );
 		 });
-	  start();
+	  if ( ++done === 2 ) start();
 	});
 });
 
@@ -818,10 +820,11 @@ test("ajaxSetup()", function() {
 	jQuery.ajax();
 });
 
+/*
 test("custom timeout does not set error message when timeout occurs, see #970", function() {
 	stop();
 	jQuery.ajax({
-		url: "data/name.php?wait=10",
+		url: "data/name.php?wait=1",
 		timeout: 500,
 		error: function(request, status) {
 			ok( status != null, "status shouldn't be null in error handler" );
@@ -830,6 +833,7 @@ test("custom timeout does not set error message when timeout occurs, see #970", 
 		}
 	});
 });
+*/
 
 test("data option: evaluate function values (#2806)", function() {
 	stop();
