@@ -190,7 +190,7 @@ var config = {
 	stats: {
 		all: 0,
 		bad: 0,
-        modules: {}
+		modules: {}
 	},
 	queue: [],
 	blocking: true,
@@ -198,7 +198,8 @@ var config = {
 	defaultLifecycle: {
 		setup: function() {},
 		teardown: function() {}
-	}
+	},
+	moduleLifecycle: {}
 };
 window.isLocal = config.isLocal;
 
@@ -253,15 +254,16 @@ function validTest( name ) {
 }
 
 function test(name, fn){
-	var lifecycle = $.extend(config.defaultLifecycle, config.moduleLifecycle);
-	
 	synchronize(function() {
+		var fn =  "setup" in config.moduleLifecycle ? 
+			config.moduleLifecycle.setup :
+			config.defaultLifecycle.setup;
 		config.expected = null;
 		config.numTests = 0;
-
+		
 		echo ((config.currentModule ? "  " : "") + name + ":");
 		try {
-			lifecycle.setup();
+			fn();
 		} catch(e) {
 			log( false, "exception raised during setup: " + e );
 		}
@@ -274,15 +276,18 @@ function test(name, fn){
 		}
 	});
 	synchronize(function() {
+			var fn =  "teardown" in config.moduleLifecycle ? 
+			config.moduleLifecycle.teardown :
+			config.defaultLifecycle.teardown;
 		try {
-			lifecycle.teardown();
+			fn();
 		} catch(e) {
 			log( false, "exception raised during teardown: " + e );
 		}
 	});
 	synchronize(function() {
 		reset();
-
+		
 		if ( config.expected && config.expected != config.numTests )
 			log( false, "Wrong number of tests run. " + config.numTests + " ran, expected " + config.expected );
 	});
@@ -309,10 +314,10 @@ function module(moduleName, lifecycle) {
 		}
 		delete stats.old;
 		stats.started = now;
-
+		
 		config.currentModule = moduleName;
-		config.moduleLifecycle = lifecycle;
-
+		config.moduleLifecycle = lifecycle || {};
+		
 		echo("[" + moduleName + "]");
 	});
 	
