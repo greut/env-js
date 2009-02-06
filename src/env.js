@@ -579,15 +579,11 @@ var window = this;
 				new DOMDocument().fromFile( new java.io.ByteArrayInputStream(
 					(new java.lang.String("<wrap>" + html + "</wrap>"))
 						.getBytes("UTF8"))).documentElement, true).childNodes;
-				
 			while (this.firstChild)
 				this.removeChild( this.firstChild );
 			
-			for ( var i = 0; i < nodes.length; i++ )
+			for ( var i = nodes.length - 1; i >= 0; i-- )
 				this.appendChild( nodes[i] );
-            
-            // need to wait a little bit there.
-            java.lang.Thread.sleep(100);
 		},
 		
 		get textContent(){
