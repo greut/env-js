@@ -467,7 +467,7 @@ function log(state, msg){
 			config.stats.modules[config.currentModule].bad++;
 	}
  
-	echo( (config.currentModule ? "	" : "") +
+	echo( (config.currentModule ? "    " : "") +
 		(state ? colors.green + "PASS" : colors.red + "FAIL") +
 		colors.nc + ": " + msg );
 }

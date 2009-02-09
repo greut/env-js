@@ -463,7 +463,7 @@ var window = this;
 			return makeNode( this._dom.getPreviousSibling() );
 		},
 		get data() {
-			return this.nodeValue;
+			return ""+this.nodeValue;
 		},
 		toString: function(){
 			return '"' + this.nodeValue + '"';
@@ -901,7 +901,6 @@ var window = this;
 						if (headerName)
 							self.responseHeaders[headerName] = headerValue;
 					}
-					
 					handleResponse();
 				}
 				
@@ -911,29 +910,34 @@ var window = this;
 					self.statusText = connection.responseMessage || "";
 
 					var contentEncoding = connection.getContentEncoding() || "utf-8",
-						stream = (contentEncoding.equalsIgnoreCase("gzip") || contentEncoding.equalsIgnoreCase("decompress") )?
-							   new java.util.zip.GZIPInputStream(connection.getInputStream()) :
-							   connection.getInputStream(),
-						baos = new java.io.ByteArrayOutputStream(),
-						   buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024),
+						buffer = java.lang.reflect.Array.newInstance(java.lang.Byte.TYPE, 1024),
 						length,
 						responseXML = null;
 
-					while ((length = stream.read(buffer)) != -1) {
-						baos.write(buffer, 0, length);
+					try{
+						var stream = (contentEncoding.equalsIgnoreCase("gzip") || contentEncoding.equalsIgnoreCase("decompress") )?
+								new java.util.zip.GZIPInputStream(connection.getInputStream()) :
+								connection.getInputStream(),
+							baos = new java.io.ByteArrayOutputStream();
+						
+						while (stream && (length = stream.read(buffer)) != -1) {
+							baos.write(buffer, 0, length);
+						}
+						
+						baos.close();
+						stream.close();
+
+						self.responseText = java.nio.charset.Charset.forName(contentEncoding)
+							.decode(java.nio.ByteBuffer.wrap(baos.toByteArray())).toString();
+					} catch(e) {
+						self.responseText = null;
 					}
-
-					baos.close();
-					stream.close();
-
-					self.responseText = java.nio.charset.Charset.forName(contentEncoding)
-						.decode(java.nio.ByteBuffer.wrap(baos.toByteArray())).toString();
 					
 					self.__defineGetter__("responseXML", function(){
 						return responseXML;
 					});
 					
-					if ( self.responseText.match(/^\s*</) ) {
+					if ( self.responseText && self.responseText.match(/^\s*</) ) {
 						try {
 							responseXML = new DOMDocument().fromFile(
 								new java.io.ByteArrayInputStream(
@@ -1059,5 +1063,14 @@ var window = this;
 		snapshotItem: function(index) {
 			return makeNode(this._result.snapshotItem(index));
 		}
+	};
+
+	var oldEncodeURIComponent = encodeURIComponent;
+	window.encodeURIComponent = function() {
+		return oldEncodeURIComponent.apply(this, arguments)
+		                            .replace(/%([0-9a-f]{2})/g,
+		                                     function(m) {
+		                                     	return m.toUpperCase()
+		                                     });
 	};
 })();
