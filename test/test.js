@@ -18,11 +18,11 @@ window.onload = function(){
         "test/unit/core.js",
         "test/unit/selector.js",
         "test/unit/event.js",
-        "test/unit/data.js",
+        "test/unit/data.js"//,
         //"test/unit/fx.js",
-        "test/unit/ajax.js",
-        "test/unit/dimensions.js",
-        "test/unit/offset.js"
+        //"test/unit/ajax.js",
+        //"test/unit/dimensions.js",
+        //"test/unit/offset.js"
     );
     
     // Display the results

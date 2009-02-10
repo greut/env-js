@@ -101,12 +101,12 @@ var window = this;
 	};
 	
 	window.removeEventListener = function(type, fn){
-	   if ( !this.uuid || this == window ) {
-		   this.uuid = events.length;
-		   events[this.uuid] = {};
-	   }
-	   
-	   if ( !events[this.uuid][type] )
+		if ( !this.uuid || this == window ) {
+			this.uuid = events.length;
+			events[this.uuid] = {};
+		}
+		   
+		if ( !events[this.uuid][type] )
 			events[this.uuid][type] = [];
 			
 		events[this.uuid][type] =
@@ -237,9 +237,9 @@ var window = this;
 		createComment: function(comment){
 			return makeNode( this._dom.createComment(comment) );
 		},
-        createDocumentFragment: function(){
-            return makeNode( this._dom.createDocumentFragment() );
-        },
+		createDocumentFragment: function(){
+			return makeNode( this._dom.createDocumentFragment() );
+		},
 		getElementsByTagName: function(name){
 			return new DOMNodeList( this._dom.getElementsByTagName(
 				name) );
@@ -259,9 +259,9 @@ var window = this;
 			}
 		           
 			var query = ".//*[" + (rules.join(" and ")) + "]";
-            var document = this instanceof DOMDocument ?
-                this :
-                this.ownerDocument;
+			var document = this instanceof DOMDocument ?
+				this :
+				this.ownerDocument;
 			var result = document.evaluate(query,
 			                               this,
 			                               null,
@@ -358,7 +358,7 @@ var window = this;
 		
 		createEvent: function(type){
 			return new Event(type);
-        },
+		},
 
 		get implementation(){
 			var dom = this._dom;
@@ -436,10 +436,10 @@ var window = this;
 			return this._dom.getNodeType();
 		},
 		get nodeValue(){
-			return this._dom.getNodeValue();
+			return ""+this._dom.getNodeValue();
 		},
 		get nodeName() {
-			return this._dom.getNodeName();
+			return ""+this._dom.getNodeName();
 		},
 		get childNodes(){
 			return new DOMNodeList( this._dom.getChildNodes() );
@@ -535,7 +535,7 @@ var window = this;
 	
 	DOMElement.prototype = extend( new DOMNode(), {
 		get nodeName(){
-			return this.tagName;
+			return ""+this.tagName;
 		},
 		get tagName(){
 			return this._dom.getTagName().toUpperCase();
@@ -673,12 +673,12 @@ var window = this;
 		
 		getAttribute: function(name){
 			return this._dom.hasAttribute(name) ?
-				new String( this._dom.getAttribute(name) ) :
+				(""+this._dom.getAttribute(name)) :
 				null;
 		},
 		getAttributeNS: function(namespace, name){
 			return this._dom.hasAttributeNS(namespace, name) ?
-				new String( this._dom.getAttributeNS(namespace, name) ) :
+				""+this._dom.getAttributeNS(namespace, name) :
 				null;
 		},
 		setAttribute: function(name,value){
@@ -736,46 +736,46 @@ var window = this;
         getElementsByClassName: DOMDocument.prototype.getElementsByClassName,
 		
 		addEventListener: function() {
-            window.addEventListener.apply(this, arguments)
-        },
+			window.addEventListener.apply(this, arguments)
+		},
 		removeEventListener: function() {
-            window.removeEventListener.apply(this, arguments);
-        },
-        _dispatchEvent: function() {
-            window.dispatchEvent.apply(this, arguments);
-        },
+			window.removeEventListener.apply(this, arguments);
+		},
+		_dispatchEvent: function() {
+			window.dispatchEvent.apply(this, arguments);
+		},
 		dispatchEvent: function(event) {
-            event._target = this;
-            event._currentTarget = this;
-            this._dispatchEvent(event);
-        },
+			event._target = this;
+			event._currentTarget = this;
+			this._dispatchEvent(event);
+		},
 		
 		click: function(){
 			var event = document.createEvent();
 			event.initEvent("click");
-            event._target = this;
-            event._currentTarget = this;
+			event._target = this;
+			event._currentTarget = this;
 			this.dispatchEvent(event);
 		},
 		submit: function(){
 			var event = document.createEvent();
 			event.initEvent("submit");
-            event._target = this;
-            event._currentTarget = this;
+			event._target = this;
+			event._currentTarget = this;
 			this.dispatchEvent(event);
 		},
 		focus: function(){
 			var event = document.createEvent();
 			event.initEvent("focus");
-            event._target = this;
-            event._currentTarget = this;
+			event._target = this;
+			event._currentTarget = this;
 			this.dispatchEvent(event);
 		},
 		blur: function(){
 			var event = document.createEvent();
 			event.initEvent("blur");
-            event._target = this;
-            event._currentTarget = this;
+			event._target = this;
+			event._currentTarget = this;
 			this.dispatchEvent(event);
 		},
 		get contentWindow(){
@@ -1003,7 +1003,7 @@ var window = this;
 
 			this.serializeToStream(node, outputStream, "UTF-8");
 
-			return new String(outputStream);
+			return ""+outputStream;
 		},
 		serializeToStream: function(root, stream, charset) {
 			root = "_dom" in root ? root._dom : root;
