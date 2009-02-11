@@ -1000,10 +1000,13 @@ var window = this;
 		constructor: XMLSerializer,
 		serializeToString: function(node) {
 			var outputStream = java.io.ByteArrayOutputStream();
+			try{
+				this.serializeToStream(node, outputStream, "UTF-8");
 
-			this.serializeToStream(node, outputStream, "UTF-8");
-
-			return ""+outputStream;
+				return ""+outputStream;
+			} catch(e) {
+				return "";
+			}
 		},
 		serializeToStream: function(root, stream, charset) {
 			root = "_dom" in root ? root._dom : root;
@@ -1072,5 +1075,21 @@ var window = this;
 		                                     function(m) {
 		                                     	return m.toUpperCase()
 		                                     });
+	};
+	// TODO: prevent this in a better way
+	//
+	// jQuery 1.3.1 eval raise an error
+	// js: uncaught JavaScript runtime exception: EvalError:
+	//  Function "eval" must be called directly, and not by way of a
+	//  function of another name.
+	//
+	// arguments was: window.script1234354545222=1;
+	var oldEval = eval;
+	window.eval = function() {
+		try {
+			oldEval.apply(this, arguments);
+		} catch(e) {
+			// pass
+		}
 	};
 })();
