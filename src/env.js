@@ -215,7 +215,7 @@ var window = this;
 
 			if ( !obj_nodes.containsKey( this._dom ) )
 				obj_nodes.put( this._dom, this );
-
+			
 			return this;
 		},
 		get nodeType(){
@@ -257,7 +257,7 @@ var window = this;
 				rules.push("contains(concat(' ', @class, ' '),"+
 				           "' "+classes[i]+" ')");
 			}
-		           
+		
 			var query = ".//*[" + (rules.join(" and ")) + "]";
 			var document = this instanceof DOMDocument ?
 				this :
@@ -272,7 +272,7 @@ var window = this;
 			while(node = result.iterateNext()) {
 				nodes.push(node);
 			}
-		           
+		
 			return nodes;
 		},
 		getElementsByName: function(name){
@@ -345,7 +345,6 @@ var window = this;
 								return c.toUpperCase();
 							});
 							var val = elem.style[prop];
-							
 							if ( prop == "opacity" && val == "" )
 								val = "1";
 								
@@ -430,8 +429,22 @@ var window = this;
 	window.DOMNode = function(node){
 		this._dom = node;
 	};
+
+	DOMNode.ELEMENT_NODE = 1;
+	DOMNode.ATTRIBUTE_NODE = 2;
+	DOMNode.TEXT_NODE = 3;
+	DOMNode.CDATA_SECTION = 4;
+	DOMNode.ENTITY_REFERENCE_NODE = 5;
+	DOMNode.ENTITY_NODE = 6;
+	DOMNode.PROCESSING_INSTRUCTION_NODE = 7;
+	DOMNode.COMMENT_NODE = 8;
+	DOMNode.DOCUMENT_NODE = 9;
+	DOMNode.DOCUMENT_TYPE_NODE = 10;
+	DOMNode.DOCUMENT_FRAGMENT_NODE = 11;
+	DOMNode.NOTATION_NODE = 12;
 	
 	DOMNode.prototype = {
+
 		get nodeType(){
 			return this._dom.getNodeType();
 		},
@@ -443,6 +456,12 @@ var window = this;
 		},
 		get childNodes(){
 			return new DOMNodeList( this._dom.getChildNodes() );
+		},
+		get firstChild(){
+			return makeNode( this._dom.getFirstChild() );
+		},
+		get lastChild(){
+			return makeNode( this._dom.getLastChild() );
 		},
 		cloneNode: function(deep){
 			return makeNode( this._dom.cloneNode(deep) );
@@ -473,9 +492,33 @@ var window = this;
 		},
 		get namespaceURI(){
 			return this._dom.getNamespaceURI();
+		},
+		appendChild: function(node){
+			this._dom.appendChild( node._dom );
+		},
+		insertBefore: function(node,before){
+			this._dom.insertBefore( node._dom, before ? before._dom : before );
+			
+			execScripts( node );
+			
+			function execScripts( node ) {
+				if ( node.nodeName == "SCRIPT" ) {
+					if ( !node.getAttribute("src") ) {
+						eval.call( window, node.textContent );
+					}
+				} else {
+					var scripts = node.getElementsByTagName("script");
+					for ( var i = 0; i < scripts.length; i++ ) {
+						execScripts( node );
+					}
+				}
+			}
+		},
+		removeChild: function(node){
+			this._dom.removeChild( node._dom );
 		}
 	};
-    
+
 	window.DOMComment = function(node){
 		this._dom = node;
 	};
@@ -497,6 +540,75 @@ var window = this;
 			get opacity(){ return this._opacity; },
 			set opacity(val){ this._opacity = val + ""; }
 		};
+
+		switch( this.nodeName ) {
+		case "DIV":
+		case "P":
+		case "PRE":
+		case "OL":
+		case "UL":
+		case "DL":
+		case "FORM":
+		case "IFRAME":
+		case "OBJECT":
+		case "EMBED":
+		case "HTML":
+			this.style.display = "block";
+			break;
+		case "IMG":
+		case "TEXTAREA":
+		case "SELECT":
+		case "INPUT":
+		case "BUTTON":
+			this.style.display = "inline-block";
+			break;
+		case "A":
+		case "B":
+		case "I":
+		case "U":
+		case "VAR":
+		case "Q":
+		case "CODE":
+		case "SPAN":
+		case "ABBR":
+		case "ADDRESS":
+		case "LABEL":
+			this.style.display = "inline";
+			break;
+		case "LI":
+		case "DL":
+		case "DD":
+			this.style.display = "list-item";
+			break;
+		case "TABLE":
+			this.style.display = "table";
+			break;
+		case "THEAD":
+			this.style.display = "table-header-group";
+			break;
+		case "TFOOT":
+			this.style.display = "table-footer-group";
+			break;
+		case "TBODY":
+			this.style.display = "table-row-group";
+			break;
+		case "TR":
+			this.style.display = "table-row";
+			break;
+		case "TH":
+		case "TD":
+			this.style.display = "table-cell";
+			break;
+		case "HTML":
+			this.style.display = "";
+			break;
+		case "SCRIPT":
+		case "NOSCRIPT":
+			this.style.display = "none";
+			break;
+		default:
+			this.style.display = "";
+		}
 		
 		// Load CSS info
 		var styles = (this.getAttribute("style") || "").split(/\s*;\s*/);
@@ -663,7 +775,12 @@ var window = this;
 		set defaultValue(val) { return this.setAttribute("defaultValue",val); },
 
 		get value() { return this.getAttribute("value") || ""; },
-		set value(val) { return this.setAttribute("value",val); },
+		set value(val) {
+			if(!this.defaultValue)
+				this.defaultValue = this.value;
+
+			return this.setAttribute("value",val);
+		},
 		
 		get src() { return this.getAttribute("src") || ""; },
 		set src(val) { return this.setAttribute("src",val); },
@@ -697,43 +814,9 @@ var window = this;
 			this._dom.removeAttributeNodeNS(attr);
 		},
 		
-		get childNodes(){
-			return new DOMNodeList( this._dom.getChildNodes() );
-		},
-		get firstChild(){
-			return makeNode( this._dom.getFirstChild() );
-		},
-		get lastChild(){
-			return makeNode( this._dom.getLastChild() );
-		},
-		appendChild: function(node){
-			this._dom.appendChild( node._dom );
-		},
-		insertBefore: function(node,before){
-			this._dom.insertBefore( node._dom, before ? before._dom : before );
-			
-			execScripts( node );
-			
-			function execScripts( node ) {
-				if ( node.nodeName == "SCRIPT" ) {
-					if ( !node.getAttribute("src") ) {
-						eval.call( window, node.textContent );
-					}
-				} else {
-					var scripts = node.getElementsByTagName("script");
-					for ( var i = 0; i < scripts.length; i++ ) {
-						execScripts( node );
-					}
-				}
-			}
-		},
-		removeChild: function(node){
-			this._dom.removeChild( node._dom );
-		},
-
 		getElementsByTagName: DOMDocument.prototype.getElementsByTagName,
 		getElementsByTagNameNS: DOMDocument.prototype.getElementsByTagNameNS,
-        getElementsByClassName: DOMDocument.prototype.getElementsByClassName,
+		getElementsByClassName: DOMDocument.prototype.getElementsByClassName,
 		
 		addEventListener: function() {
 			window.addEventListener.apply(this, arguments)
@@ -796,6 +879,21 @@ var window = this;
 		}
 	});
 	
+	window.DOMDocumentFragment = function(fragment) {
+		this._dom = fragment;
+		this.fragmentCounter = window.DOMDocumentFragment.counter++;
+	};
+	window.DOMDocumentFragment.counter = 1;
+
+	DOMDocumentFragment.prototype = extend( new DOMNode, {
+		get nodeName(){
+			return "DocumentFragment";
+		},
+		toString: function() {
+			return "<"+this.nodeName+" "+this.fragmentCounter+">";
+		}
+	});
+
 	// Helper method for extending one object with another
 	
 	function extend(a,b) {
@@ -820,16 +918,30 @@ var window = this;
 	
 	function makeNode(node){
 		if ( node ) {
-			if ( !obj_nodes.containsKey( node ) )
-				obj_nodes.put( node, node.getNodeType() == 1?
-					new DOMElement( node ) :
-					node.getNodeType() == 8 ?
-					new DOMComment( node ) :
-					new DOMNode( node ) );
-			
-			return obj_nodes.get(node);
-		} else
+			if ( !obj_nodes.containsKey( node ) ) {
+				var domNode,
+					nodeType = 0+node.getNodeType();
+				switch(nodeType){
+				case DOMNode.ELEMENT_NODE:
+					domNode = new DOMElement( node )
+					break;
+				case DOMNode.COMMENT_NODE:
+					domNode = new DOMComment( node )
+					break;
+				case DOMNode.DOCUMENT_FRAGMENT_NODE:
+					domNode = new DOMDocumentFragment( node );
+					break;
+				default:
+					domNode = new DOMNode( node );
+				}
+				obj_nodes.put( node, domNode );
+				return domNode;
+			} else {
+				return obj_nodes.get(node);
+			}					
+		} else {
 			return null;
+		}
 	}
 	
 	// XMLHttpRequest
